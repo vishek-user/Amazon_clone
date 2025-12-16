@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Insect Catcher Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(to right, #56ab2f, #a8e063);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .game-container {
+            width: 90%;
+            max-width: 600px;
+            height: 400px;
+            background: #fff;
+            border-radius: 10px;
+            padding: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .score {
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .insect {
+            width: 50px;
+            height: 50px;
+            background-image: url("insect.jpg");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            position: absolute;
+            cursor: pointer;
+            animation: moveInsect 0.8s infinite alternate;
+            transition: transform 0.1s;
+        }
+
+        .insect:hover {
+            transform: scale(1.1);
+        }
+
+        @keyframes moveInsect {
+            from { transform: rotate(-10deg) translateY(0px); }
+            to { transform: rotate(10deg) translateY(-5px); }
+        }
+
+        .game-over {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+            z-index: 100;
+        }
+
+        .game-over h2 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: #ff6b6b;
+        }
+
+        .game-over p {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .game-over button {
+            margin-top: 10px;
+            padding: 10px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #28a745;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .game-over button:hover {
+            background: #218838;
+        }
+
+        @media (max-width: 500px) {
+            .game-container {
+                height: 300px;
+            }
+            
+            .insect {
+                width: 40px;
+                height: 40px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div class="score">Score: <span id="score">0</span></div>
+
+    <div class="game-over" id="gameOver">
+        <h2>Game Over</h2>
+        <p>Your Score: <span id="finalScore"></span></p>
+        <button onclick="restartGame()">Play Again</button>
+    </div>
+</div>
+
+<!-- Sound Effects -->
+<audio id="catchSound" src="https://www.soundjay.com/buttons/sounds/button-16.mp3"></audio>
+<audio id="gameOverSound" src="https://www.soundjay.com/misc/sounds/fail-buzzer-02.mp3"></audio>
+
+<script>
+    const gameContainer = document.querySelector(".game-container");
+    const scoreElement = document.getElementById("score");
+    const gameOverScreen = document.getElementById("gameOver");
+    const finalScore = document.getElementById("finalScore");
+
+    const catchSound = document.getElementById("catchSound");
+    const gameOverSound = document.getElementById("gameOverSound");
+
+    let score = 0;
+    let speed = 2000;
+    let gameInterval;
+    let gameRunning = true;
+    let insects = [];
+
+    function createInsect() {
+        if (!gameRunning) return;
+
+        const insect = document.createElement("div");
+        insect.classList.add("insect");
+
+        const x = Math.random() * (gameContainer.clientWidth - 50);
+        const y = Math.random() * (gameContainer.clientHeight - 80);
+
+        insect.style.left = x + "px";
+        insect.style.top = y + "px";
+
+        insect.addEventListener("click", () => {
+            catchSound.currentTime = 0;
+            catchSound.play();
+
+            score++;
+            scoreElement.innerText = score;
+            
+            // Add hit effect
+            insect.style.transform = "scale(0)";
+            setTimeout(() => {
+                if (insect.parentNode) {
+                    insect.remove();
+                }
+            }, 100);
+
+            // Remove from insects array
+            const index = insects.indexOf(insect);
+            if (index > -1) {
+                insects.splice(index, 1);
+            }
+
+            // Increase difficulty every 5 points
+            if (score % 5 === 0 && speed > 800) {
+                speed -= 200;
+                restartInterval();
+            }
+        });
+
+        gameContainer.appendChild(insect);
+        insects.push(insect);
+
+        // If insect is missed → Game Over
+        setTimeout(() => {
+            if (gameContainer.contains(insect)) {
+                endGame();
+            }
+        }, speed);
+    }
+
+    function startGame() {
+        gameRunning = true;
+        gameInterval = setInterval(createInsect, speed);
+    }
+
+    function restartInterval() {
+        clearInterval(gameInterval);
+        gameInterval = setInterval(createInsect, speed);
+    }
+
+    function endGame() {
+        gameRunning = false;
+        clearInterval(gameInterval);
+
+        gameOverSound.play();
+        finalScore.innerText = score;
+        gameOverScreen.style.display = "flex";
+    }
+
+    function restartGame() {
+        score = 0;
+        speed = 2000;
+        scoreElement.innerText = score;
+        gameOverScreen.style.display = "none";
+        
+        // Remove all insects
+        insects.forEach(insect => {
+            if (insect.parentNode) {
+                insect.remove();
+            }
+        });
+        insects = [];
+        
+        // Restart game after a short delay
+        setTimeout(startGame, 300);
+    }
+
+    // Start game
+    startGame();
+</script>
+</body>
+</html>
